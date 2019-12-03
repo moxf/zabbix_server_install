@@ -1,0 +1,15 @@
+-   hosts: nginx
+    roles:
+    -   nginx
+
+-   hosts: php
+    roles:
+    -   php
+
+-   hosts: mysql
+    roles:
+    -   mysql
+
+-   hosts: zabbix
+    roles:
+    -   zabbix

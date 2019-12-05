@@ -17,6 +17,8 @@ check_command(){
     fi
 }
 
+yum -y install libxml2 libxml2-devel libevent-devel libevent 
+
 mkdir -p ${zabbix_log_dir}
 cd ${remote_src_dir}/zabbix-*
 ./configure --prefix=${zabbix_app_dir} --enable-server --enable-agent --with-mysql --with-net-snmp --with-libcurl --with-libxml2 
@@ -34,6 +36,7 @@ check_command "import database/mysql/images.sql"
 check_command "import database/mysql/data.sql"
 
 #解决zabbix图形中文乱码
+sed -i "s@realpath.*@realpath('fonts'));@" ${zabbix_web_root}/include/defines.inc.php
 sed -i 's@DejaVuSans@simkai@g' ${zabbix_web_root}/include/defines.inc.php
 
 cat >${zabbix_web_root}/conf/zabbix.conf.php <<EOF

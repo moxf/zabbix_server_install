@@ -38,6 +38,10 @@ create_php_tasks_main_yml(){
     with_items:
         -   "${php_package}" 
         -   "${libzip_package}"
+-   name: copy ${php_unit_file} to /etc/systemd/system/
+    template: 
+        src: ${php_unit_file}
+        dest: /etc/systemd/system/${php_unit_file}
 -   name: init php
     script: "${php_init_script_name}"
 -   name: config php support zabbix

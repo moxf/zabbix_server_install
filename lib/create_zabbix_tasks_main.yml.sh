@@ -57,10 +57,10 @@ create_zabbix_tasks_main_yml(){
         name: zabbix-server
         state: started
         enabled: true
--   name: copy ${font_file} to ${zabbix_web_root}
+-   name: copy ${font_file} to ${zabbix_web_root}/fonts/
     copy:
         src: ${font_file}
-        dest: ${zabbix_web_root}/assets/fonts/
+        dest: ${zabbix_web_root}/fonts/
 -   name: restart php-fpm
     systemd:
         name: php-fpm

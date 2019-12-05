@@ -130,6 +130,52 @@ load_var(){
 }
 
 
+create_del_script(){
+
+    local mode_name=$1
+    case $mode_name in
+        etcd)
+            local app_dir=${etcd_app_dir}
+            ;;
+        flanneld)
+            local app_dir=${flanneld_app_dir}
+            ;;
+        *)
+            echo "unknow mode_name:${mode_name}"
+            ;;
+    esac
+    mkdir -p ${shell_dir}/roles/del/
+    local f_app_dir=`dirname ${app_dir}`
+
+cat >${shell_dir}/roles/del/del_${mode_name}.sh <<EOF
+#!/bin/bash
+source /etc/profile
+app_dir=${app_dir}
+systemctl stop ${mode_name}
+pid=\`ps -ef |grep "${app_dir}/bin/${mode_name}"|grep -v grep |awk '{print \$2}'\`
+if [ -n \${pid} ];then
+    kill -9 \${pid}
+    echo "kill -9 \${pid}"
+fi
+if [ -z "${app_dir}"  ];then
+    echo "erro! app_dir is null"
+    exit 7
+fi
+f_app_dir=${f_app_dir}
+if [ ${f_app_dir} != '/' ];then
+    cd ${f_app_dir} && /bin/rm -rf ${mode_name}
+    echo "cd ${f_app_dir} && /bin/rm -rf ${mode_name}"
+fi
+rm -f /etc/systemd/system/${mode_name}.service
+if [ -d /data/${mode_name} ];then
+    cd /data && /bin/rm -rf ${mode_name}
+    echo "cd /data && /bin/rm -rf ${mode_name}"
+fi
+
+EOF
+
+}
+
 init_ansible_roles(){
 
     declare -A handler_file_set
@@ -153,8 +199,9 @@ init_ansible_roles(){
             ;;
         php)
             php_init_script_name=init_php.sh
+            php_unit_file=php-fpm.service
             php_support_zabbix_script=php_support_zabbix.sh
-            php_file_set=([files]="${php_init_script_name},${php_support_zabbix_script}" [handlers]='main.yml' [tasks]='main.yml')
+            php_file_set=([files]="${php_init_script_name},${php_support_zabbix_script}" [handlers]='main.yml' [tasks]='main.yml' [templates]=${php_unit_file})
             for key in ${!php_file_set[*]};do
                 handler_file_set[${key}]=${php_file_set[${key}]}
             done
@@ -189,6 +236,27 @@ init_ansible_roles(){
             `$function_name ${file_path}`
         done
     done
+
+}
+
+
+#创建删除脚本
+create_del_script_full(){
+    create_del_script etcd
+    create_del_script flanneld
+    cat >${shell_dir}/roles/del/main.sh <<EOF
+#!/bin/bash
+source /etc/profile
+mode_name=\${1}
+shell_dir=\`cd \$(dirname \$0);pwd\`
+if [ \$# -ne 1 ];then
+    echo "must be 1 args but \$# give it"
+    echo "useage: bash \`basename \$0\` etcd|flanneld "
+    exit 7
+fi
+ansible -i \${shell_dir}/../../hosts \${mode_name} --user=${remote_user} -m script -a "\${shell_dir}/del_\${mode_name}.sh"
+
+EOF
 
 }
 
